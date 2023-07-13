@@ -39,9 +39,6 @@ public class PageEntry implements Comparable<PageEntry> {
         map.put("page", page);
         map.put("count", count);
         JSONObject result = new JSONObject(map);
-        // Для работы с json мы используем библиотеку jettison.
-        // Эта библиотека использует LinkedHashMap, который поддерживает порядок атрибутов.
-        // Поэтому метод toString выводит атрибуты в том порядке, в котором они добавлялись изначально.
         return result.toString();
     }
 }
