@@ -13,6 +13,9 @@ public class Main {
             System.out.println("Идет соединение с сервером на порту 8989");
             BooleanSearchEngine engine = new BooleanSearchEngine(new File("pdfs"));
 
+
+            Scanner scanner = new Scanner(System.in);
+
             while (true) {
                 try (
                         Socket socket = serverSocket.accept();
@@ -20,19 +23,18 @@ public class Main {
                         PrintWriter out = new PrintWriter(socket.getOutputStream())
                 ) {
                     String request = in.readLine();
-                    String answer;
+
+                    // Ввод слова для поиска
+                    String word = scanner.nextLine().toLowerCase();
 
                     // Поиск и формирование ответа
-                    if (request.isEmpty()) {
-                        answer = "Слово не введено.";
-                    } else {
-                        engine.search(request).stream().forEach(jsonObject -> {
-                            System.out.println(jsonObject);
-                        });
-                        continue;
+                    if (word.isEmpty()) {
+                        System.out.println("Слово не введено.");
+                    }else if(engine.search(word).isEmpty()){
+                        System.out.println(engine.search(word));
+                    }else {
+                        engine.search(word).forEach(json -> System.out.println(json));
                     }
-
-                    out.println(answer);
                 }
             }
         } catch (IOException e) {
