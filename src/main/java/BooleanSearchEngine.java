@@ -2,21 +2,33 @@ import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfReader;
 import com.itextpdf.kernel.pdf.canvas.parser.PdfTextExtractor;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.util.*;
 
 public class BooleanSearchEngine implements SearchEngine {
-    private final Map<String, Set<PageEntry>> index = new HashMap<>();
+    Map<String, List<PageEntry>> indexing = new HashMap<>();
+    Set<String> unusefulWords = new HashSet();
 
     public BooleanSearchEngine(File pdfsDir) throws IOException {
-        for (File pdf : pdfsDir.listFiles()) {
-            var doc = new PdfDocument(new PdfReader(pdf));
-            int pageCount = doc.getNumberOfPages();
-            for (int i = 1; i <= pageCount; i++) {
+
+        File folder = pdfsDir;
+        String text;
+        String[] words;
+        String fileName;
+        String absFileName;
+
+        for (File file : folder.listFiles()) {
+            fileName = file.getName();
+            absFileName = file.getAbsolutePath();
+            var doc = new PdfDocument(new PdfReader(absFileName));
+            for (int i = 1; i <= doc.getNumberOfPages(); i++) {
                 var page = doc.getPage(i);
-                var text = PdfTextExtractor.getTextFromPage(page);
-                var words = text.split("\\P{IsAlphabetic}+");
+                text = PdfTextExtractor.getTextFromPage(page);
+                words = text.split("\\P{IsAlphabetic}+");
+
                 Map<String, Integer> freqs = new HashMap<>();
                 for (var word : words) {
                     if (word.isEmpty()) {
@@ -25,22 +37,83 @@ public class BooleanSearchEngine implements SearchEngine {
                     word = word.toLowerCase();
                     freqs.put(word, freqs.getOrDefault(word, 0) + 1);
                 }
+
                 for (String word : freqs.keySet()) {
-                    PageEntry pageEntry = new PageEntry(pdf.getName(), i, freqs.get(word));
-                    index.computeIfAbsent(word, k -> new HashSet<>()).add(pageEntry);
+                    PageEntry pageEntry = new PageEntry(fileName, i, freqs.get(word));
+                    List<PageEntry> pageEntryList = indexing.getOrDefault(word, new ArrayList<>());
+                    pageEntryList.add(pageEntry);
+                    Collections.sort(pageEntryList);
+                    indexing.put(word, pageEntryList);
                 }
             }
+
         }
+
+    }
+
+    private List<PageEntry> addLists(List<PageEntry> list1, List<PageEntry> list2) {
+        List<PageEntry> res = new ArrayList<>();
+        List<PageEntry> tempList2 = new ArrayList<>();
+        tempList2.addAll(list2);
+
+        for (int i = 0; i < list1.size(); i++) {
+            boolean bothPage = false;
+            int count = -1;
+            for (int j = 0; j < tempList2.size(); j++) {
+                if (tempList2.get(j).getPdfName().equals(list1.get(i).getPdfName()) &&
+                        tempList2.get(j).getPage() == list1.get(i).getPage()) {
+                    res.add(new PageEntry(list1.get(i).getPdfName(),
+                            list1.get(i).getPage(),
+                            list1.get(i).getCount() + tempList2.get(j).getCount()));
+                    bothPage = true;
+                    count = j;
+                    break;
+                }
+            }
+            if (!bothPage) {
+                res.add(list1.get(i));
+            } else {
+                tempList2.remove(count);
+            }
+        }
+
+        res.addAll(tempList2);
+
+        Collections.sort(res);
+        return res;
     }
 
     @Override
-    public List<PageEntry> search(String word) {
-        Set<PageEntry> result = index.get(word);
-        if (result == null) {
-            return Collections.emptyList();
+    public List<PageEntry> search(String text) {
+        String[] words = text.split("\\P{IsAlphabetic}+");
+        List<String> cleanWords = new ArrayList<>();
+
+        for (String word : words) {
+            if (word.isEmpty()) {
+                continue;
+            }
+            if (!unusefulWords.contains(word)) {
+                cleanWords.add(word);
+            }
         }
-        List<PageEntry> sortedResult = new ArrayList<>(result);
-        sortedResult.sort(Collections.reverseOrder());
-        return sortedResult;
+
+        List<PageEntry> result = new ArrayList<>();
+        for (String word : cleanWords) {
+            result = addLists(result, indexing.get(word));
+        }
+
+        return result;
+    }
+
+
+    public void readUnusefulWords(String fileName) {
+        try (BufferedReader br = new BufferedReader(new FileReader(fileName))) {
+            String s;
+            while ((s = br.readLine()) != null) {
+                unusefulWords.add(s);
+            }
+        } catch (IOException e) {
+            System.out.println(e.getMessage());
+        }
     }
 }
