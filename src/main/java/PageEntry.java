@@ -1,24 +1,21 @@
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonGetter;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.util.JSONPObject;
-import com.google.gson.Gson;
-import jdk.jfr.DataAmount;
-import org.codehaus.jettison.json.JSONException;
-import org.codehaus.jettison.json.JSONObject;
-
-import java.util.LinkedHashMap;
-import java.util.Map;
-
 public class PageEntry implements Comparable<PageEntry> {
     private final String pdfName;
     private final int page;
     private final int count;
 
+
     public PageEntry(String pdfName, int page, int count) {
         this.pdfName = pdfName;
         this.page = page;
         this.count = count;
+    }
+
+    public String getPdfName() {
+        return pdfName;
+    }
+
+    public int getPage() {
+        return page;
     }
 
     public int getCount() {
@@ -27,18 +24,21 @@ public class PageEntry implements Comparable<PageEntry> {
 
     @Override
     public int compareTo(PageEntry o) {
-        return Integer.compare(o.getCount(), this.getCount());
+        if ((this.count < o.count) ||
+                ((this.count == o.count) && (this.pdfName.compareTo(o.pdfName) > 0)) ||
+                ((this.count == o.count) && (this.pdfName.compareTo(o.pdfName) == 0) && (this.page > o.page))) {
+            return 1;
+        } else if ((this.count == o.count) && (this.pdfName.compareTo(o.pdfName) == 0) && (this.page == o.page)) {
+            return 0;
+        } else {
+            return -1;
+        }
     }
 
-
-
-    @Override
     public String toString() {
-        Map map = new LinkedHashMap();
-        map.put("pdfName", pdfName);
-        map.put("page", page);
-        map.put("count", count);
-        JSONObject result = new JSONObject(map);
-        return result.toString();
+        return "pdf =" + this.pdfName +
+                ", page =" + this.page +
+                ", count =" + this.count;
     }
+
 }
