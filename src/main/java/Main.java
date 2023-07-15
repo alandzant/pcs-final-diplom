@@ -1,44 +1,39 @@
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
+import javax.naming.directory.SearchResult;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.List;
-import java.util.Scanner;
 
 
 public class Main {
-    public static void main(String[] args) {
-        try (ServerSocket serverSocket = new ServerSocket(8989)) {
-            System.out.println("Идет соединение с сервером на порту 8989");
-            BooleanSearchEngine engine = new BooleanSearchEngine(new File("pdfs"));
+    public static void main(String[] args) throws IOException {
+        BooleanSearchEngine engine = new BooleanSearchEngine(new File("pdfs"));
 
-
-            Scanner scanner = new Scanner(System.in);
-
+        try (ServerSocket serverSocket = new ServerSocket(8989);) {
+            System.out.println("Server started...");
             while (true) {
                 try (
                         Socket socket = serverSocket.accept();
                         BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                        PrintWriter out = new PrintWriter(socket.getOutputStream())
+                        PrintWriter out = new PrintWriter(socket.getOutputStream());
                 ) {
-                    String request = in.readLine();
+                    String word = in.readLine();
 
-                    // Ввод слова для поиска
-                    String word = scanner.nextLine().toLowerCase();
+                    GsonBuilder builder = new GsonBuilder();
+                    Gson gson = builder.create();
 
-                    // Поиск и формирование ответа
-                    if (word.isEmpty()) {
-                        System.out.println("Слово не введено.");
-                    }else if(engine.search(word).isEmpty()){
-                        System.out.println(engine.search(word));
-                    }else {
-                        engine.search(word).forEach(json -> System.out.println(json));
-                    }
+                    List<PageEntry> resp = engine.search(word);
+                    out.println(gson.toJson(resp));
                 }
             }
         } catch (IOException e) {
-            System.out.println("Сервер не запускается");
+            System.out.println("Не могу стартовать сервер");
             e.printStackTrace();
         }
     }
