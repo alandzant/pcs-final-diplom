@@ -93,18 +93,19 @@ public class BooleanSearchEngine implements SearchEngine {
                 continue;
             }
             if (!unusefulWords.contains(word)) {
-                cleanWords.add(word);
+                cleanWords.add(word.toLowerCase());
             }
         }
 
         List<PageEntry> result = new ArrayList<>();
         for (String word : cleanWords) {
-            result = addLists(result, indexing.get(word));
+            List<PageEntry> entries = indexing.getOrDefault(word, Collections.emptyList());
+            result.addAll(entries);
         }
 
+        Collections.sort(result);
         return result;
     }
-
 
     public void readUnusefulWords(String fileName) {
         try (BufferedReader br = new BufferedReader(new FileReader(fileName))) {
