@@ -1,6 +1,3 @@
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -29,7 +26,11 @@ public class Main {
                     Gson gson = builder.create();
 
                     List<PageEntry> resp = engine.search(word);
-                    out.println(gson.toJson(resp));
+                    if (resp != null) {
+                        out.println(gson.toJson(resp));
+                    } else {
+                        out.println("[]");
+                    }
                 }
             }
         } catch (IOException e) {
